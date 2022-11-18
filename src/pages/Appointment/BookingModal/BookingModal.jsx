@@ -1,8 +1,12 @@
 import React from "react";
+import { useContext } from "react";
+import toast from "react-hot-toast";
+import { AuthContext } from "../../../contexts/AuthProvider";
 
-const BookingModal = ({ treatment, setTreatment, pickDate }) => {
+const BookingModal = ({ treatment, setTreatment, pickDate, refetch }) => {
   // treatment is appointment option just different name
   const { name, slots } = treatment;
+  const { user } = useContext(AuthContext);
 
   const handleBooking = (e) => {
     e.preventDefault();
@@ -13,18 +17,39 @@ const BookingModal = ({ treatment, setTreatment, pickDate }) => {
     const phone = form.phone.value;
 
     const booking = {
-        appointmentDate: pickDate,
-        treatment: name,
-        patientName,
-        slot,
-        email,
-        phone
-    }
+      appointmentDate: pickDate,
+      treatment: name,
+      patientName,
+      slot,
+      email,
+      phone,
+    };
     // todo send data to the server
     // and once data is saved then close the modal
     // and display success toast
     console.log(booking);
-    setTreatment(null)
+
+    fetch("http://localhost:5000/bookings", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(booking),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        // console.log(data);
+        if (data.acknowledged) {
+          setTreatment(null);
+          toast.success("Booking confirmed");
+          refetch()
+        } else {
+          toast.error(data.message)
+        }
+      })
+      .catch((err) => {
+        console.log(err.message);
+      });
   };
 
   return (
@@ -60,16 +85,18 @@ const BookingModal = ({ treatment, setTreatment, pickDate }) => {
             <input
               type="text"
               name="name"
+              defaultValue={user?.displayName}
               placeholder="Your Name"
               className="input w-full border border-[#CFCFCF]"
-              required
+              disabled
             />
             <input
               type="email"
               name="email"
+              value={user?.email}
               placeholder="Email Address"
               className="input w-full border border-[#CFCFCF]"
-              required
+              disabled
             />
             <input
               type="Phone Number"
